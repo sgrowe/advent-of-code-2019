@@ -1,17 +1,7 @@
-use std::fs::File;
-use std::io::prelude::*;
+mod file;
 
 fn get_fuel_needed_for_mass(mass: i64) -> i64 {
   (mass / 3) - 2
-}
-
-fn read_file(file_name: &str) -> String {
-  let mut file = File::open(file_name).unwrap();
-  let mut contents = String::new();
-
-  file.read_to_string(&mut contents).unwrap();
-
-  contents
 }
 
 fn parse_int(string: &str) -> i64 {
@@ -52,7 +42,7 @@ fn part_two(input: &str) -> i64 {
 }
 
 fn main() {
-  let contents = read_file("src/one.txt");
+  let contents = file::read("src/one.txt");
 
   let mut total_fuel = part_one(&contents);
 
