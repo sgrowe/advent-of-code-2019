@@ -1,7 +1,8 @@
 mod file;
 
 fn main() {
-  let input = file::read("src/two.txt");
+  let contents = file::read("src/two.txt");
+  let input = contents.trim();
 
   println!("Part one:");
   println!("Final value at position 0: {}", part_one(&input));
@@ -13,7 +14,7 @@ fn main() {
 }
 
 fn part_one(input: &str) -> i64 {
-  let mut program = parse_program(&input.trim());
+  let mut program = parse_program(&input);
 
   run_program_with_inputs(12, 2, &mut program);
 
@@ -23,11 +24,12 @@ fn part_one(input: &str) -> i64 {
 fn part_two(input: &str) -> (i64, i64) {
   let target = 19690720;
 
-  let initial_program = parse_program(&input.trim());
+  let initial_program = parse_program(&input);
 
   for i in 0..99 {
     for j in 0..99 {
       let mut program = initial_program.clone();
+
       run_program_with_inputs(i, j, &mut program);
 
       if program[0] == target {
@@ -76,12 +78,20 @@ fn deref(program: &Vec<i64>, i: usize) -> i64 {
   program[pointer]
 }
 
-fn get_opp(op_code: i64) -> Box<Fn(i64, i64) -> i64> {
+fn get_opp(op_code: i64) -> impl Fn(i64, i64) -> i64 {
   match op_code {
-    1 => Box::new(|x, y| x + y),
-    2 => Box::new(|x, y| x * y),
+    1 => add,
+    2 => multiply,
     _ => panic!("Unexpected opcode: {}", op_code),
   }
+}
+
+fn add(x: i64, y: i64) -> i64 {
+  x + y
+}
+
+fn multiply(x: i64, y: i64) -> i64 {
+  x * y
 }
 
 #[cfg(test)]
