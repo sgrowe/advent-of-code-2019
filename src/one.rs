@@ -1,4 +1,4 @@
-mod file;
+use super::file_utils;
 
 fn get_fuel_needed_for_mass(mass: i64) -> i64 {
   (mass / 3) - 2
@@ -41,8 +41,8 @@ fn part_two(input: &str) -> i64 {
     .sum()
 }
 
-fn main() {
-  let contents = file::read("src/one.txt");
+pub fn main() {
+  let contents = file_utils::read("src/one.txt");
 
   let mut total_fuel = part_one(&contents);
 

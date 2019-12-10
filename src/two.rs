@@ -1,12 +1,13 @@
-mod file;
+use super::file_utils;
 
-fn main() {
-  let contents = file::read("src/two.txt");
+pub fn main() {
+  let contents = file_utils::read("src/two.txt");
   let input = contents.trim();
 
   println!("Part one:");
   println!("Final value at position 0: {}", part_one(&input));
 
+  println!();
   println!("Part two:");
   let (noun, verb) = part_two(&input);
   println!("Noun: {} - Verb: {}", noun, verb);
