@@ -3,6 +3,7 @@ mod four;
 mod one;
 mod rolling_pairs;
 mod three;
+mod int_code;
 mod two;
 
 fn main() {
