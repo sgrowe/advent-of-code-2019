@@ -47,5 +47,5 @@ fn run_program_with_inputs(a: i64, b: i64, program: &mut Vec<i64>) {
   program[1] = a;
   program[2] = b;
 
-  run_program(program)
+  program.run();
 }

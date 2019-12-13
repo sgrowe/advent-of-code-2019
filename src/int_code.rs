@@ -1,30 +1,34 @@
-pub type Program = Vec<i64>;
-
-pub fn parse_program(input: &str) -> Program {
-    input
-        .split(',')
-        .map(|s| s.parse::<i64>().unwrap())
-        .collect::<Program>()
+pub trait Program {
+    fn run(&mut self);
 }
 
-pub fn run_program(program: &mut Program) {
-    let mut i = 0;
+impl Program for Vec<i64> {
+    fn run(&mut self) {
+        let mut i = 0;
 
-    while program[i] != 99 {
-        let op = get_opp(program[i]);
-        let x = deref(program, i + 1);
-        let y = deref(program, i + 2);
-        let target_pos = program[i + 3] as usize;
+        while self[i] != 99 {
+            let op = get_opp(self[i]);
+            let x = deref(&self, i + 1);
+            let y = deref(&self, i + 2);
+            let target_pos = self[i + 3] as usize;
 
-        let res = op(x, y);
+            let res = op(x, y);
 
-        program[target_pos] = res;
+            self[target_pos] = res;
 
-        i += 4;
+            i += 4;
+        }
     }
 }
 
-fn deref(program: &Program, i: usize) -> i64 {
+pub fn parse_program(input: &str) -> Vec<i64> {
+    input
+        .split(',')
+        .map(|s| s.parse::<i64>().unwrap())
+        .collect::<Vec<i64>>()
+}
+
+fn deref(program: &Vec<i64>, i: usize) -> i64 {
     let pointer = program[i] as usize;
 
     program[pointer]
@@ -52,7 +56,9 @@ mod day_two_tests {
 
     fn assert_program_output_is(input: &str, expected: Vec<i64>) {
         let mut program = parse_program(input);
-        run_program(&mut program);
+
+        program.run();
+
         assert_eq!(program, expected)
     }
 
