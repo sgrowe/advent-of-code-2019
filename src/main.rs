@@ -1,6 +1,7 @@
 mod file_utils;
 mod four;
 mod one;
+mod rolling_pairs;
 mod three;
 mod two;
 

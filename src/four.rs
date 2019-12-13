@@ -1,28 +1,28 @@
+use super::rolling_pairs::*;
 use std::ops::Range;
 
 pub fn main() {
     let range = 109165..576724;
+
     println!("Part one:");
     println!(
         "Number of possible passwords: {}",
-        count_possible_pass_codes_in_range(&range, &is_possible_pass_code)
+        count_possible_pass_codes_in_range(range.clone(), &is_possible_pass_code)
     );
 
     println!();
     println!("Part two:");
     println!(
         "Number of possible passwords: {}",
-        count_possible_pass_codes_in_range(&range, &is_possible_pass_code_v2)
+        count_possible_pass_codes_in_range(range, &is_possible_pass_code_v2)
     );
 }
 
 fn count_possible_pass_codes_in_range(
-    range: &Range<u32>,
+    range: Range<u32>,
     predicate: impl Fn(&u32) -> bool,
 ) -> usize {
-    let r = range.clone();
-
-    r.filter(&predicate).count()
+    range.filter(&predicate).count()
 }
 
 fn is_possible_pass_code(code: &u32) -> bool {
@@ -40,9 +40,7 @@ fn is_possible_pass_code_v2(code: &u32) -> bool {
 }
 
 fn parse_digits(code: &u32) -> Vec<u32> {
-    let string = code.to_string();
-
-    string
+    code.to_string()
         .chars()
         .map(|c| c.to_digit(10).unwrap())
         .collect::<Vec<u32>>()
@@ -53,22 +51,10 @@ fn is_six_digit(digits: &Vec<u32>) -> bool {
 }
 
 fn has_adjacent_digits(digits: &Vec<u32>) -> bool {
-    let mut digits_iter = digits.iter();
-
-    let mut prev_digit = match digits_iter.next() {
-        Some(digit) => digit,
-        None => return false,
-    };
-
-    for digit in digits_iter {
-        if digit == prev_digit {
-            return true;
-        };
-
-        prev_digit = digit;
-    }
-
-    false
+    digits
+        .iter()
+        .rolling_pairs()
+        .any(|(prev, current)| prev == current)
 }
 
 fn contains_an_adjacent_pair_of_digits(digits: &Vec<u32>) -> bool {
@@ -99,19 +85,10 @@ fn contains_an_adjacent_pair_of_digits(digits: &Vec<u32>) -> bool {
 }
 
 fn digits_only_increase(digits: &Vec<u32>) -> bool {
-    let mut digits_iter = digits.iter();
-
-    let mut prev_digit = digits_iter.next().unwrap();
-
-    for digit in digits {
-        if digit < prev_digit {
-            return false;
-        }
-
-        prev_digit = digit;
-    }
-
-    true
+    digits
+        .iter()
+        .rolling_pairs()
+        .all(|(prev_digit, digit)| digit >= prev_digit)
 }
 
 #[cfg(test)]
