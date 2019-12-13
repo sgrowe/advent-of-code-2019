@@ -1,4 +1,5 @@
 use super::rolling_pairs::*;
+use itertools::Itertools;
 use std::ops::Range;
 
 pub fn main() {
@@ -58,30 +59,11 @@ fn has_adjacent_digits(digits: &Vec<u32>) -> bool {
 }
 
 fn contains_an_adjacent_pair_of_digits(digits: &Vec<u32>) -> bool {
-    let mut digits_iter = digits.iter();
-
-    let mut prev_digit = match digits_iter.next() {
-        Some(digit) => digit,
-        None => return false,
-    };
-
-    let mut adjacent_count = 1;
-
-    for digit in digits_iter {
-        if digit == prev_digit {
-            adjacent_count += 1;
-        } else {
-            if adjacent_count == 2 {
-                return true;
-            }
-
-            adjacent_count = 1;
-        }
-
-        prev_digit = digit;
-    }
-
-    adjacent_count == 2
+    digits
+        .iter()
+        .group_by(|digit| digit.clone())
+        .into_iter()
+        .any(|(_digit, group)| group.count() == 2)
 }
 
 fn digits_only_increase(digits: &Vec<u32>) -> bool {
