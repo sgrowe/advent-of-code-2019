@@ -23,10 +23,10 @@ enum Dir {
     Right,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Move {
     dir: Dir,
-    dist: i64,
+    dist: usize,
 }
 
 type Route = Vec<Move>;
@@ -40,21 +40,17 @@ fn part_one(input: &str) -> i64 {
 }
 
 fn parse_routes(input: &str) -> (Route, Route) {
-    let mut routes = input
-        .trim()
-        .lines()
-        .take(2)
-        .map(|line| parse_route(line.trim()));
+    let mut routes = input.trim().lines().map(|line| parse_route(line.trim()));
 
     (routes.next().unwrap(), routes.next().unwrap())
 }
 
 fn parse_route(input: &str) -> Route {
-    input.split(',').map(&parse_move).collect::<Route>()
+    input.split(',').map(parse_move).collect()
 }
 
 fn parse_move(input: &str) -> Move {
-    let first_char = input.chars().nth(0).unwrap();
+    let first_char = input.chars().next().unwrap();
 
     let dir = match first_char {
         'U' => Dir::Up,
@@ -64,7 +60,7 @@ fn parse_move(input: &str) -> Move {
         _ => panic!("Unexpected char: {}", first_char),
     };
 
-    let dist = input[1..].parse::<i64>().unwrap();
+    let dist = input[1..].parse::<usize>().unwrap();
 
     Move { dir, dist }
 }
@@ -74,29 +70,26 @@ fn get_distance_to_nearest_crossover(a: &Route, b: &Route) -> i64 {
     let path_b = places_visited(&b);
 
     crossover_points(path_a, path_b)
-        .iter()
         .map(|(x, y)| x.abs() + y.abs())
         .min()
         .unwrap()
 }
 
-fn crossover_points<Path>(a: Path, b: Path) -> Vec<Coord>
+fn crossover_points<Path>(a: Path, b: Path) -> impl Iterator<Item = Coord>
 where
-    Path: IntoIterator<Item = Coord>,
+    Path: Iterator<Item = Coord>,
 {
-    let places_a_visited = a.into_iter().collect::<HashSet<(i64, i64)>>();
+    let places_a_visited = a.collect::<HashSet<(i64, i64)>>();
 
-    b.into_iter()
-        .filter(|place| places_a_visited.contains(place))
-        .collect::<Vec<Coord>>()
+    b.filter(move |place| places_a_visited.contains(place))
 }
 
 fn places_visited<'a>(route: &'a Route) -> impl Iterator<Item = (i64, i64)> + 'a {
     route
         .iter()
-        .flat_map(|Move { dir, dist }| std::iter::repeat(dir).take(*dist as usize))
+        .flat_map(|&Move { dir, dist }| std::iter::repeat(dir).take(dist))
         .scan((0, 0), |state, dir| {
-            let new_coord = make_move(state, dir);
+            let new_coord = make_move(*state, dir);
 
             *state = new_coord;
 
@@ -104,12 +97,12 @@ fn places_visited<'a>(route: &'a Route) -> impl Iterator<Item = (i64, i64)> + 'a
         })
 }
 
-fn make_move((x, y): &Coord, step: &Dir) -> Coord {
+fn make_move((x, y): Coord, step: Dir) -> Coord {
     match step {
-        Dir::Up => (*x, y + 1),
-        Dir::Down => (*x, y - 1),
-        Dir::Left => (x - 1, *y),
-        Dir::Right => (x + 1, *y),
+        Dir::Up => (x, y + 1),
+        Dir::Down => (x, y - 1),
+        Dir::Left => (x - 1, y),
+        Dir::Right => (x + 1, y),
     }
 }
 
@@ -125,25 +118,19 @@ fn fewest_combined_steps_to_crossover(a: &Route, b: &Route) -> i64 {
     let path_a = places_visited(&a).collect::<Vec<Coord>>();
     let path_b = places_visited(&b).collect::<Vec<Coord>>();
 
-    let path_a_clone = path_a.clone();
-    let path_b_clone = path_b.clone();
-
-    let crossovers = crossover_points(path_a, path_b);
+    let crossovers = crossover_points(path_a.iter().cloned(), path_b.iter().cloned());
 
     crossovers
-        .iter()
         .map(|(x, y)| {
-            let steps_a = path_a_clone
+            let steps_a = 1 + path_a
                 .iter()
-                .position(|(ax, ay)| ax == x && ay == y)
-                .unwrap()
-                + 1;
+                .position(|(ax, ay)| *ax == x && *ay == y)
+                .unwrap();
 
-            let steps_b = path_b_clone
+            let steps_b = 1 + path_b
                 .iter()
-                .position(|(bx, by)| bx == x && by == y)
-                .unwrap()
-                + 1;
+                .position(|(bx, by)| *bx == x && *by == y)
+                .unwrap();
 
             (steps_a + steps_b) as i64
         })

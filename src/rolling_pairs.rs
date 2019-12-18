@@ -22,7 +22,7 @@ where
         let prev_item = self.next();
 
         RollingPairsState {
-            prev_item: prev_item,
+            prev_item,
             iter: self,
         }
     }
@@ -48,7 +48,7 @@ where
     }
 }
 
-fn map_options_into_tuple<T>(x: Option<T>, y: Option<T>) -> Option<(T, T)> {
+fn map_options_into_tuple<A, B>(x: Option<A>, y: Option<B>) -> Option<(A, B)> {
     match (x, y) {
         (Some(a), Some(b)) => Some((a, b)),
         _ => None,

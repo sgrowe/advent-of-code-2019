@@ -9,12 +9,12 @@ fn parse_int(string: &str) -> i64 {
 }
 
 fn parse_module_masses<'a>(input: &'a str) -> impl Iterator<Item = i64> + 'a {
-  input.trim().split_ascii_whitespace().map(&parse_int)
+  input.trim().split_ascii_whitespace().map(parse_int)
 }
 
 fn part_one(input: &str) -> i64 {
   parse_module_masses(input)
-    .map(|mass| get_fuel_needed_for_mass(mass))
+    .map(get_fuel_needed_for_mass)
     .sum()
 }
 
@@ -37,7 +37,7 @@ fn get_actual_fuel_needed_for_mass(mass: i64) -> i64 {
 
 fn part_two(input: &str) -> i64 {
   parse_module_masses(input)
-    .map(|mass| get_actual_fuel_needed_for_mass(mass))
+    .map(get_actual_fuel_needed_for_mass)
     .sum()
 }
 
