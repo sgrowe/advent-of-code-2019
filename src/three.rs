@@ -1,8 +1,8 @@
-use super::file_utils;
 use std::collections::HashSet;
+use std::fs::read_to_string;
 
 pub fn main() {
-    let input = file_utils::read("src/three.txt");
+    let input = read_to_string("src/three.txt").unwrap();
 
     println!("Part one:");
     println!("Distance to closest crossover: {}", part_one(&input));
