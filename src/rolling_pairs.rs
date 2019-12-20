@@ -1,24 +1,26 @@
-pub struct RollingPairsState<'a, Item>
+pub struct RollingPairsState<'a, Iter>
 where
-    Item: Clone,
+    Iter: Iterator,
+    Iter::Item: Clone,
 {
-    prev_item: Option<Item>,
-    iter: &'a mut Iterator<Item = Item>,
+    prev_item: Option<Iter::Item>,
+    iter: &'a mut Iter,
 }
 
-pub trait RollingPairs<I>
+pub trait RollingPairs<Iter>
 where
-    I: Clone,
+    Iter: Iterator,
+    Iter::Item: Clone,
 {
-    fn rolling_pairs(&mut self) -> RollingPairsState<I>;
+    fn rolling_pairs(&mut self) -> RollingPairsState<Iter>;
 }
 
-impl<Iter, Item> RollingPairs<Item> for Iter
+impl<Iter> RollingPairs<Iter> for Iter
 where
-    Iter: Iterator<Item = Item>,
-    Item: Clone,
+    Iter: Iterator,
+    Iter::Item: Clone,
 {
-    fn rolling_pairs(&mut self) -> RollingPairsState<Item> {
+    fn rolling_pairs(&mut self) -> RollingPairsState<Iter> {
         let prev_item = self.next();
 
         RollingPairsState {
@@ -28,13 +30,14 @@ where
     }
 }
 
-impl<'a, Item> Iterator for RollingPairsState<'a, Item>
+impl<'a, Iter> Iterator for RollingPairsState<'a, Iter>
 where
-    Item: Clone,
+    Iter: Iterator,
+    Iter::Item: Clone,
 {
-    type Item = (Item, Item);
+    type Item = (Iter::Item, Iter::Item);
 
-    fn next(&mut self) -> Option<(Item, Item)> {
+    fn next(&mut self) -> Option<Self::Item> {
         let prev = self.prev_item.clone();
         let next = self.iter.next();
 
