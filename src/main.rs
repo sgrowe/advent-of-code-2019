@@ -1,8 +1,9 @@
+mod five;
 mod four;
+mod int_code;
 mod one;
 mod rolling_pairs;
 mod three;
-mod int_code;
 mod two;
 
 fn main() {
@@ -17,6 +18,11 @@ fn main() {
 
     print_day_heading("FOUR");
     four::main();
+
+    print_day_heading("FIVE");
+    five::main();
+
+    println!();
 }
 
 fn print_day_heading(day: &str) {
