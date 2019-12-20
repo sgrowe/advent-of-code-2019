@@ -1,5 +1,4 @@
 use super::int_code::*;
-use std::collections::VecDeque;
 use std::fs::read_to_string;
 
 pub fn main() {
@@ -7,16 +6,22 @@ pub fn main() {
     let mut program = input.trim().parse::<Program>().unwrap();
 
     println!("Part one:");
-    println!("{}\n", part_one(&mut (program.clone())));
+    println!("{}", part_one(&mut (program.clone())));
+    println!();
+
+    println!("Part two:");
+    println!("{}", part_two(&mut program));
+    println!();
 }
 
 fn part_one(program: &mut Program) -> i64 {
-    let mut inputs = VecDeque::new();
-    inputs.push_back(1);
-
-    program.inputs = inputs;
-
-    let output = program.run();
+    let output = program.run(vec![1]);
 
     output[output.len() - 1]
+}
+
+fn part_two(program: &mut Program) -> i64 {
+    let output = program.run(vec![5]);
+
+    output[0]
 }

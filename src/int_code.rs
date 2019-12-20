@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
@@ -20,10 +19,14 @@ impl Mode {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Instruction {
-    Add([Mode; 2]),
-    Multiply([Mode; 2]),
+    Add([Mode; 3]),
+    Multiply([Mode; 3]),
     ReadInput(Mode),
     WriteOutput(Mode),
+    JumpIfTrue([Mode; 2]),
+    JumpIfFalse([Mode; 2]),
+    LessThan([Mode; 3]),
+    Equals([Mode; 3]),
 }
 
 impl Instruction {
@@ -34,10 +37,14 @@ impl Instruction {
         let mode_3 = Mode::from_i64((op_code / 10000) % 10);
 
         match code {
-            1 => Instruction::Add([mode_1, mode_2]),
-            2 => Instruction::Multiply([mode_1, mode_2]),
+            1 => Instruction::Add([mode_1, mode_2, mode_3]),
+            2 => Instruction::Multiply([mode_1, mode_2, mode_3]),
             3 => Instruction::ReadInput(mode_1),
             4 => Instruction::WriteOutput(mode_1),
+            5 => Instruction::JumpIfTrue([mode_1, mode_2]),
+            6 => Instruction::JumpIfFalse([mode_1, mode_2]),
+            7 => Instruction::LessThan([mode_1, mode_2, mode_3]),
+            8 => Instruction::Equals([mode_1, mode_2, mode_3]),
             _ => panic!("Unexpected opcode: {}", op_code),
         }
     }
@@ -48,18 +55,25 @@ impl Instruction {
             Instruction::Multiply(_) => 4,
             Instruction::ReadInput(_) => 2,
             Instruction::WriteOutput(_) => 2,
+            Instruction::JumpIfTrue(_) => 3,
+            Instruction::JumpIfFalse(_) => 3,
+            Instruction::LessThan(_) => 4,
+            Instruction::Equals(_) => 4,
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
-    pub inputs: VecDeque<i64>,
     pub code: Vec<i64>,
 }
 
 impl Program {
-    pub fn run(&mut self) -> Vec<i64> {
+    pub fn run<I>(&mut self, inputs: I) -> Vec<i64>
+    where
+        I: IntoIterator<Item = i64>,
+    {
+        let mut inputs_iter = inputs.into_iter();
         let mut outputs = Vec::new();
 
         let mut i = 0;
@@ -68,27 +82,62 @@ impl Program {
             let instruction = Instruction::from_i64(self.code[i]);
 
             match instruction {
-                Instruction::Add([mode_1, mode_2]) => {
+                Instruction::Add([mode_1, mode_2, mode_3]) => {
                     let x = self.read(i + 1, mode_1);
                     let y = self.read(i + 2, mode_2);
 
-                    self.write(i + 3, Mode::Position, x + y);
+                    self.write(i + 3, mode_3, x + y);
                 }
-                Instruction::Multiply([mode_1, mode_2]) => {
+
+                Instruction::Multiply([mode_1, mode_2, mode_3]) => {
                     let x = self.read(i + 1, mode_1);
                     let y = self.read(i + 2, mode_2);
 
-                    self.write(i + 3, Mode::Position, x * y);
+                    self.write(i + 3, mode_3, x * y);
                 }
+
                 Instruction::ReadInput(mode) => {
-                    let input = self.inputs.pop_front().expect("No input given");
+                    let input = inputs_iter.next().expect("No input given");
 
                     self.write(i + 1, mode, input);
                 }
+
                 Instruction::WriteOutput(mode) => {
                     let output = self.read(i + 1, mode);
 
                     outputs.push(output);
+                }
+
+                Instruction::JumpIfTrue([mode_1, mode_2]) => {
+                    if self.read(i + 1, mode_1) != 0 {
+                        i = self.read(i + 2, mode_2) as usize;
+                        continue;
+                    }
+                }
+
+                Instruction::JumpIfFalse([mode_1, mode_2]) => {
+                    if self.read(i + 1, mode_1) == 0 {
+                        i = self.read(i + 2, mode_2) as usize;
+                        continue;
+                    }
+                }
+
+                Instruction::LessThan([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(i + 1, mode_1);
+                    let y = self.read(i + 2, mode_2);
+
+                    let out = if x < y { 1 } else { 0 };
+
+                    self.write(i + 3, mode_3, out);
+                }
+
+                Instruction::Equals([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(i + 1, mode_1);
+                    let y = self.read(i + 2, mode_2);
+
+                    let out = if x == y { 1 } else { 0 };
+
+                    self.write(i + 3, mode_3, out);
                 }
             }
 
@@ -125,10 +174,7 @@ impl FromStr for Program {
             .split(',')
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, _>>()
-            .map(|code| Program {
-                inputs: VecDeque::new(),
-                code,
-            })
+            .map(|code| Program { code })
     }
 }
 
@@ -139,10 +185,9 @@ mod day_two_tests {
     fn assert_program_output_is(input: &str, expected_code: Vec<i64>) {
         let mut program = input.parse::<Program>().unwrap();
 
-        program.run();
+        program.run(vec![]);
 
         let expected = Program {
-            inputs: VecDeque::new(),
             code: expected_code,
         };
 
@@ -187,7 +232,7 @@ mod day_five_part_one_tests {
     fn allows_different_modes_for_operations() {
         let mut program = "1002,4,3,4,33".parse::<Program>().unwrap();
 
-        program.run();
+        program.run(vec![]);
 
         assert_eq!(program.code, vec![1002, 4, 3, 4, 99]);
     }
@@ -196,7 +241,7 @@ mod day_five_part_one_tests {
     fn supports_negative_values_in_program_code() {
         let mut program = "1101,100,-1,4,0".parse::<Program>().unwrap();
 
-        program.run();
+        program.run(vec![]);
 
         assert_eq!(program.code, vec![1101, 100, -1, 4, 99]);
     }
@@ -205,12 +250,7 @@ mod day_five_part_one_tests {
     fn supports_op_codes_3_and_4() {
         let mut program = "3,0,4,0,99".parse::<Program>().unwrap();
 
-        let mut inputs = VecDeque::new();
-        inputs.push_back(5);
-
-        program.inputs = inputs;
-
-        let output = program.run();
+        let output = program.run(vec![5]);
 
         assert_eq!(output, vec!(5));
     }
@@ -223,16 +263,57 @@ mod day_five_part_one_tests {
             .parse::<Program>()
             .unwrap();
 
-        let mut inputs = VecDeque::new();
-        inputs.push_back(1);
-
-        program.inputs = inputs;
-
-        let output = program.run();
+        let output = program.run(vec![1]);
 
         let test_codes = &output[0..output.len() - 1];
 
         assert!(test_codes.iter().all(|&x| x == 0));
     }
+}
 
+#[cfg(test)]
+mod day_five_part_two_tests {
+    use super::*;
+
+    #[test]
+    fn example_case_1() {
+        let program = "3,9,8,9,10,9,4,9,99,-1,8".parse::<Program>().unwrap();
+
+        assert_eq!(program.clone().run(vec!(7)), vec!(0));
+        assert_eq!(program.clone().run(vec!(8)), vec!(1));
+        assert_eq!(program.clone().run(vec!(9)), vec!(0));
+    }
+
+    #[test]
+    fn example_jump_case_1() {
+        let program = "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"
+            .parse::<Program>()
+            .unwrap();
+
+        assert_eq!(program.clone().run(vec!(0)), vec!(0));
+        assert_eq!(program.clone().run(vec!(1)), vec!(1));
+        assert_eq!(program.clone().run(vec!(-5)), vec!(1));
+    }
+
+    #[test]
+    fn example_jump_case_2() {
+        let program = "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"
+            .parse::<Program>()
+            .unwrap();
+
+        assert_eq!(program.clone().run(vec!(0)), vec!(0));
+        assert_eq!(program.clone().run(vec!(1)), vec!(1));
+        assert_eq!(program.clone().run(vec!(-5)), vec!(1));
+    }
+
+    #[test]
+    fn larger_example() {
+        let program = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
+            .parse::<Program>()
+            .unwrap();
+
+        assert_eq!(program.clone().run(vec!(7)), vec!(999));
+        assert_eq!(program.clone().run(vec!(8)), vec!(1000));
+        assert_eq!(program.clone().run(vec!(9)), vec!(1001));
+    }
 }
