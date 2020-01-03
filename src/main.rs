@@ -3,6 +3,7 @@ mod four;
 mod int_code;
 mod one;
 mod rolling_pairs;
+mod six;
 mod three;
 mod two;
 
@@ -21,6 +22,9 @@ fn main() {
 
     print_day_heading("FIVE");
     five::main();
+
+    print_day_heading("SIX");
+    six::main();
 
     println!();
 }
