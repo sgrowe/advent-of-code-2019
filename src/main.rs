@@ -2,30 +2,32 @@ mod five;
 mod four;
 mod int_code;
 mod one;
+mod permutations;
 mod rolling_pairs;
+mod seven;
 mod six;
 mod three;
 mod two;
 
 fn main() {
-    print_day_heading("ONE");
-    one::main();
+    run_day("ONE", one::main);
 
-    print_day_heading("TWO");
-    two::main();
+    run_day("TWO", two::main);
 
-    print_day_heading("THREE");
-    three::main();
+    run_day("THREE", three::main);
 
-    print_day_heading("FOUR");
-    four::main();
+    run_day("FOUR", four::main);
 
-    print_day_heading("FIVE");
-    five::main();
+    run_day("FIVE", five::main);
 
-    print_day_heading("SIX");
-    six::main();
+    run_day("SIX", six::main);
 
+    run_day("SEVEN", seven::main);
+}
+
+fn run_day(name: &str, print_solutions: impl FnOnce()) {
+    print_day_heading(name);
+    print_solutions();
     println!();
 }
 

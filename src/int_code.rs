@@ -66,9 +66,14 @@ impl Instruction {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     pub code: Vec<i64>,
+    i: usize,
 }
 
 impl Program {
+    pub fn new(code: Vec<i64>) -> Program {
+        Program { code, i: 0 }
+    }
+
     pub fn run<I>(&mut self, inputs: I) -> Vec<i64>
     where
         I: IntoIterator<Item = i64>,
@@ -76,79 +81,89 @@ impl Program {
         let mut inputs_iter = inputs.into_iter();
         let mut outputs = Vec::new();
 
-        let mut i = 0;
-
-        while self.code[i] != 99 {
-            let instruction = Instruction::from_i64(self.code[i]);
-
-            match instruction {
-                Instruction::Add([mode_1, mode_2, mode_3]) => {
-                    let x = self.read(i + 1, mode_1);
-                    let y = self.read(i + 2, mode_2);
-
-                    self.write(i + 3, mode_3, x + y);
-                }
-
-                Instruction::Multiply([mode_1, mode_2, mode_3]) => {
-                    let x = self.read(i + 1, mode_1);
-                    let y = self.read(i + 2, mode_2);
-
-                    self.write(i + 3, mode_3, x * y);
-                }
-
-                Instruction::ReadInput(mode) => {
-                    let input = inputs_iter.next().expect("No input given");
-
-                    self.write(i + 1, mode, input);
-                }
-
-                Instruction::WriteOutput(mode) => {
-                    let output = self.read(i + 1, mode);
-
-                    outputs.push(output);
-                }
-
-                Instruction::JumpIfTrue([mode_1, mode_2]) => {
-                    if self.read(i + 1, mode_1) != 0 {
-                        i = self.read(i + 2, mode_2) as usize;
-                        continue;
-                    }
-                }
-
-                Instruction::JumpIfFalse([mode_1, mode_2]) => {
-                    if self.read(i + 1, mode_1) == 0 {
-                        i = self.read(i + 2, mode_2) as usize;
-                        continue;
-                    }
-                }
-
-                Instruction::LessThan([mode_1, mode_2, mode_3]) => {
-                    let x = self.read(i + 1, mode_1);
-                    let y = self.read(i + 2, mode_2);
-
-                    let out = if x < y { 1 } else { 0 };
-
-                    self.write(i + 3, mode_3, out);
-                }
-
-                Instruction::Equals([mode_1, mode_2, mode_3]) => {
-                    let x = self.read(i + 1, mode_1);
-                    let y = self.read(i + 2, mode_2);
-
-                    let out = if x == y { 1 } else { 0 };
-
-                    self.write(i + 3, mode_3, out);
-                }
-            }
-
-            i += instruction.width();
+        while let Some(output) = self.run_until_next_output(&mut inputs_iter) {
+            outputs.push(output);
         }
 
         outputs
     }
 
-    fn read(&self, addr: usize, mode: Mode) -> i64 {
-        let val = self.code[addr];
+    pub fn run_until_next_output<I>(&mut self, inputs: &mut I) -> Option<i64>
+    where
+        I: Iterator<Item = i64>,
+    {
+        while self.code[self.i] != 99 {
+            let instruction = Instruction::from_i64(self.code[self.i]);
+
+            match instruction {
+                Instruction::Add([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(1, mode_1);
+                    let y = self.read(2, mode_2);
+
+                    self.write(3, mode_3, x + y);
+                }
+
+                Instruction::Multiply([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(1, mode_1);
+                    let y = self.read(2, mode_2);
+
+                    self.write(3, mode_3, x * y);
+                }
+
+                Instruction::ReadInput(mode) => {
+                    let input = inputs.next().expect("No input given");
+
+                    self.write(1, mode, input);
+                }
+
+                Instruction::WriteOutput(mode) => {
+                    let output = self.read(1, mode);
+
+                    self.i += instruction.width();
+                    return Some(output);
+                }
+
+                Instruction::JumpIfTrue([mode_1, mode_2]) => {
+                    if self.read(1, mode_1) != 0 {
+                        self.i = self.read(2, mode_2) as usize;
+                        continue;
+                    }
+                }
+
+                Instruction::JumpIfFalse([mode_1, mode_2]) => {
+                    if self.read(1, mode_1) == 0 {
+                        self.i = self.read(2, mode_2) as usize;
+                        continue;
+                    }
+                }
+
+                Instruction::LessThan([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(1, mode_1);
+                    let y = self.read(2, mode_2);
+
+                    let out = if x < y { 1 } else { 0 };
+
+                    self.write(3, mode_3, out);
+                }
+
+                Instruction::Equals([mode_1, mode_2, mode_3]) => {
+                    let x = self.read(1, mode_1);
+                    let y = self.read(2, mode_2);
+
+                    let out = if x == y { 1 } else { 0 };
+
+                    self.write(3, mode_3, out);
+                }
+            }
+
+            self.i += instruction.width();
+        }
+
+        None
+    }
+
+    fn read(&self, offset: usize, mode: Mode) -> i64 {
+        let val = self.code[self.i + offset];
 
         match mode {
             Mode::Position => self.code[val as usize],
@@ -156,10 +171,10 @@ impl Program {
         }
     }
 
-    fn write(&mut self, addr: usize, mode: Mode, value: i64) {
+    fn write(&mut self, offset: usize, mode: Mode, value: i64) {
         let write_addr = match mode {
-            Mode::Position => self.code[addr] as usize,
-            Mode::Immediate => addr,
+            Mode::Position => self.code[self.i + offset] as usize,
+            Mode::Immediate => self.i + offset,
         };
 
         self.code[write_addr] = value;
@@ -174,7 +189,7 @@ impl FromStr for Program {
             .split(',')
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, _>>()
-            .map(|code| Program { code })
+            .map(Program::new)
     }
 }
 
@@ -187,11 +202,7 @@ mod day_two_tests {
 
         program.run(vec![]);
 
-        let expected = Program {
-            code: expected_code,
-        };
-
-        assert_eq!(program, expected)
+        assert_eq!(program.code, expected_code)
     }
 
     #[test]
